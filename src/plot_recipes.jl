@@ -67,9 +67,15 @@ returned by `vertices_list` are the same. In that case, a scatter plot is used
 maps of singletons.
 """
 @recipe function plot_lazyset(X::LazySet, ε::Float64=1e-3;
-                              color="blue", label="", grid=true, alpha=0.5)
+                              color="lightblue", alpha=0.5)
 
     @assert dim(X) == 2 "cannot plot a $(dim(S))-dimensional set"
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
 
     P = overapproximate(X, ε)
     vlist = transpose(hcat(convex_hull(vertices_list(P))...))

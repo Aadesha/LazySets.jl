@@ -140,10 +140,15 @@ julia> plot([B1, B2], 1e-4); # slower but more accurate
 See the documentation of `plot_lazyset(S::LazySet, [ε]::Float64; ...)` for details.
 """
 @recipe function plot_lazyset(Xk::Vector{S}, ε::Float64=1e-3;
-                              seriescolor="blue", label="", grid=true,
-                              alpha=0.5) where {S<:LazySet}
+                              color="lightblue", alpha=0.5) where {S<:LazySet}
 
     seriestype := :shape
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
 
     for X in Xk
         if X isa EmptySet
@@ -205,11 +210,17 @@ julia> plot(P);
 ```
 """
 @recipe function plot_polytope(P::AbstractPolytope;
-                               color="blue", label="", grid=true, alpha=0.5)
+                               color="lightblue", alpha=0.5)
 
     # for polytopes
     @assert dim(P) == 2 "cannot plot a $(dim(P))-dimensional polytope"
     seriestype := :shape
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
 
     points = convex_hull(vertices_list(P))
     vlist = transpose(hcat(points...))
@@ -270,11 +281,16 @@ julia> plot([P1, P2]);
 It is assumed that the given vector of polytopes is two-dimensional.
 """
 @recipe function plot_polytopes(Xk::Vector{S};
-                               seriescolor="blue", label="", grid=true,
-                               alpha=0.5) where {S<:AbstractPolytope}
+                               color="lightblue", alpha=0.5) where {S<:AbstractPolytope}
 
     # it is assumed that the polytopes are two-dimensional
     seriestype := :shape
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
 
     for Pi in Xk
         @assert dim(Pi) == 2 "cannot plot a $(dim(Pi))-dimensional polytope"
@@ -319,10 +335,16 @@ julia> plot(Singleton([0.5, 1.0]));
 ```
 """
 @recipe function plot_singleton(point::AbstractSingleton;
-                                color="blue", label="", grid=true,
-                                legend=false)
+                                color="blue", alpha=1.0)
 
     seriestype := :scatter
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
+
     @assert dim(point) == 2 ||
             dim(point) == 3 "cannot plot a $(dim(point))-dimensional singleton"
     [Tuple(element(point))]
@@ -358,10 +380,15 @@ julia> plot([Singleton(a), Singleton(b), Singleton(c)]);
 ```
 """
 @recipe function plot_singleton(Xk::Vector{S};
-                                color="blue", label="", grid=true, legend=false
-                               ) where {S<:AbstractSingleton}
+                                color="blue", alpha=1.0) where {S<:AbstractSingleton}
 
     seriestype := :scatter
+
+    seriescolor --> color
+    seriesalpha --> alpha
+    label --> ""
+    grid --> true
+    aspectratio --> 1.0
 
     if dim(Xk[1]) == 2
         @assert all([dim(pi) == 2 for pi in Xk]) "all points in this vector " *
@@ -391,7 +418,7 @@ Plot a line segment.
 
 ### Examples
 
-```jldoctest
+```jldoctest plot_linesegment
 julia> using Plots, LazySets;
 
 julia> L = LineSegment([0., 0.], [1., 1.]);
@@ -399,15 +426,35 @@ julia> L = LineSegment([0., 0.], [1., 1.]);
 julia> plot(L);
 
 ```
+
+To control the color of the line, use the `linecolor` keyword argument, and to
+control the color of the endpoints, use the `markercolor` keyword argument.
+To control the width, use `linewidth`.
+
+```jldoctest plot_linesegment
+julia> plot(L, markercolor="green", linecolor="red", linewidth=2.);
+
+```
+
+The option `add_marker` (optional, default: `true`) can be used to specify if
+endpoints markers should be plotted or not.
+
+```jldoctest plot_linesegment
+julia> plot(L, add_marker=false, linecolor="red", linewidth=2.);
+
+```
 """
-@recipe function plot_linesegment(L::LineSegment; color="blue", label="",
-                                  grid=true, alpha=0.5, legend=false,
+@recipe function plot_linesegment(L::LineSegment; color="blue", alpha=0.5,
                                   add_marker=true)
 
     seriestype := :path
-    linecolor   --> color
-    markershape --> (add_marker ? :circle : :none)
+
+    linecolor  --> color
     markercolor --> color
+    label --> ""
+    grid --> true
+    markershape --> (add_marker ? :circle : :none)
+
 
     [Tuple(L.p); Tuple(L.q)]
 end
@@ -433,15 +480,20 @@ julia> L2 = LineSegment([1., 0.], [0., 1.]);
 julia> plot([L1, L2]);
 
 ```
+
+For other options, see the documentation of
+`plot_linesegment(L::LineSegment; ...)`.
 """
-@recipe function plot_linesegments(Xk::Vector{S}; color="blue",
-                                   label="", grid=true, alpha=0.5, legend=false,
+@recipe function plot_linesegments(Xk::Vector{S}; color="blue", alpha=.5,
                                    add_marker=true) where {S<:LineSegment}
 
     seriestype := :path
+
     linecolor   --> color
-    markershape --> (add_marker ? :circle : :none)
     markercolor --> color
+    label --> ""
+    grid --> true
+    markershape --> (add_marker ? :circle : :none)
 
     for Li in Xk
         @series [Tuple(Li.p); Tuple(Li.q)]
@@ -459,7 +511,7 @@ Plot an interval.
 
 ### Examples
 
-```jldoctest
+```jldoctest plot_interval
 julia> using Plots, LazySets;
 
 julia> I = Interval(0.0, 1.0);
@@ -467,15 +519,19 @@ julia> I = Interval(0.0, 1.0);
 julia> plot(I);
 
 ```
+
+For other options, see the documentation of `plot_linesegment(L::LineSegment; ...)`.
 """
-@recipe function plot_interval(I::Interval; color=:auto, label="", grid=true,
-                               alpha=0.5, legend=false, add_marker=true,
-                               linewidth=2.)
+@recipe function plot_interval(I::Interval; color="blue", alpha=0.5,
+                               add_marker=true)
 
     seriestype := :path
+
     linecolor   --> color
-    markershape --> (add_marker ? :circle : :none)
     markercolor --> color
+    label --> ""
+    grid --> true
+    markershape --> (add_marker ? :circle : :none)
 
     [Tuple([min(I), 0.0]); Tuple([max(I), 0.0])]
 end

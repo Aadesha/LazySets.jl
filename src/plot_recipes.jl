@@ -64,7 +64,7 @@ correctly.
 This recipe detects if the overapproximation is such that the first two vertices
 returned by `vertices_list` are the same. In that case, a scatter plot is used
 (instead of a shape plot). This corner case arises, for example, when lazy linear
-maps of singletons.
+maps of singletons are plotted.
 """
 @recipe function plot_lazyset(X::LazySet, ε::Float64=1e-3;
                               color="lightblue", alpha=0.5)

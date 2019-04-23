@@ -45,7 +45,7 @@ julia> plot(B, 1e-2); # faster than the previous algorithm, but less accurate
 
 ### Algorithm
 
-In first stage, an overapproximation of the given set to a polygon in constraint
+In the first stage, an overapproximation of the given set to a polygon in constraint
 representation is computed. The second argument, `ε`, corresponds to the error
 in Hausdorff distance between the overapproximating set and `X`. The default
 value `1e-3` is chosen such that the unit ball in the 2-norm is plotted with

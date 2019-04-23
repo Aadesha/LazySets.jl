@@ -437,7 +437,7 @@ julia> plot(L, markercolor="green", linecolor="red", linewidth=2.);
 ```
 
 The option `add_marker` (optional, default: `true`) can be used to specify if
-endpoints markers should be plotted or not.
+endpoint markers should be plotted or not.
 
 ```jldoctest plot_linesegment
 julia> plot(L, add_marker=false, linecolor="red", linewidth=2.);

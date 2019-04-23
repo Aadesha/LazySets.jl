@@ -61,7 +61,7 @@ correctly.
 
 ### Notes
 
-This recipe detects if overapproximation is such that the first two vertices
+This recipe detects if the overapproximation is such that the first two vertices
 returned by `vertices_list` are the same. In that case, a scatter plot is used
 (instead of a shape plot). This corner case arises, for example, when lazy linear
 maps of singletons.

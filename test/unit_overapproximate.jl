@@ -47,12 +47,48 @@ for N in [Float64, Rational{Int}, Float32]
     h2 = Hyperrectangle(N[2.5, 4.5],  N[1/2, 1/2])
     H = overapproximate(h1 × h2, Hyperrectangle) # defaults to convert method
     @test low(H) == N[0, 2, 4] && high(H) == N[1, 3, 5]
-    
+
     # overapproximation of the lazy linear map of a hyperrectangular set
     H = Hyperrectangle(N[0, 0], N[1/2, 1])
     M = Diagonal(N[2, 2])
     OA = overapproximate(M*H, Hyperrectangle)
     @test OA isa Hyperrectangle && OA.center == N[0, 0] && OA.radius == N[1, 2]
+
+    #overapproximation of Minkowski sum of linear maps for each block in the row block
+    i1 = Interval(N[0, 1])
+    h = Hyperrectangle(low=N[3, 4], high=N[5, 7])
+    M = N[1 2 3; 4 5 6; 7 8 9]
+    cpa = CartesianProductArray([i1, h])
+    lm = M * cpa
+
+    oa = overapproximate(lm, Hyperrectangle)
+    oa_box = overapproximate(lm, Approximations.BoxDirections)
+    d_oa_d_hp = overapproximate(lm, CartesianProductArray{N, Hyperrectangle{N}})
+    d_oa_d_box = overapproximate(lm, CartesianProductArray, Approximations.BoxDirections)
+    oa_d_hp = overapproximate(d_oa_d_hp)
+    oa_d_box = overapproximate(d_oa_d_box, Approximations.BoxDirections)
+
+    @test oa == oa_d_hp
+    @test oa_box == oa_d_box
+
+    for (oax, set_type) in [(d_oa_d_hp, Hyperrectangle), (d_oa_d_box, HPolytope)]
+        @test oax isa CartesianProductArray
+        arr = oax.array
+        @test length(arr) == 2 && dim(arr[1]) == 1 && dim(arr[2]) == 2
+        @test all(X -> X isa set_type, arr)
+    end
+
+    i1 = Interval(N[0, 1])
+    i2 = Interval(N[2, 3])
+    i3 = Interval(N[1, 4])
+    cpa = CartesianProductArray([i1, i2, i3])
+    M = N[1 2 0; 0 1 0; 0 1 1]
+    lm = M * cpa
+    d_oa = overapproximate(lm, CartesianProductArray{N, Interval{N}})
+    oa = overapproximate(lm)
+    @test overapproximate(d_oa) == oa
+    @test typeof(d_oa) == CartesianProductArray{N, Interval{N}}
+
 end
 
 # tests that do not work with Rational{Int}
@@ -129,4 +165,41 @@ for N in [Float64, Float32]
     Y_zonotope = overapproximate(Y, Zonotope) # overapproximate with a zonotope
     @test Y_polygon ⊆ Y_zonotope
     @test !(Y_zonotope ⊆ Y_polygon)
+
+    #Zonotope approximation of TaylorModel1
+    x₀ = IntervalArithmetic.Interval(N(0.0),N(0.0))
+    D = IntervalArithmetic.Interval(N(-3.0), N(1.0))
+    δ = N(0.5);I = IntervalArithmetic.Interval(-δ, δ)
+    p = Taylor1(N[2.0, 1.0], 2)
+    p1 = Taylor1(N[0.9, 3.0], 2)
+    TM = [TaylorModel1(p, I, x₀, D),TaylorModel1(p1, I, x₀, D)]
+    Z1 = overapproximate(TM,Zonotope)
+    Z2 = Zonotope(N[1.0,-2.1],[N[2.0,6.0],N[0.5,0.0],N[0.0,0.5]])
+    @test Z1 == Z2
+
+    #Zonotope approximation of TaylorModelN
+    x1, x2 = set_variables(N, ["x1", "x2"], order=5)
+    x0 = IntervalArithmetic.Interval(N(0.0), N(0.0))×IntervalArithmetic.Interval(N(0.0), N(0.0))
+    Dx1 = IntervalArithmetic.Interval(N(0.0), N(3.0))
+    Dx2 = IntervalArithmetic.Interval(N(-1.0), N(1.0))
+    D = Dx1×Dx2
+    δ = N(0.5);I = IntervalArithmetic.Interval(-δ, δ)
+    p1 = 1 + x1^2 - x2
+    p2 = x2^3 + 3x1^4 + x1 + 1
+    TM = [TaylorModelN(p1,I,x0,D), TaylorModelN(p2,I,x0,D)]
+    Z1 = overapproximate(TM,Zonotope)
+    Z2 = Zonotope(N[5.5,124.0],[N[0.0,1.5],N[-1.0,0.0],N[5.0,0.0],N[0.0,123.0]])
+    @test Z1 == Z2
+end
+
+for N in [Float64] # due to sparse vectors: a = sparse(Float32[1 -1; 1 1];); a \ Float32[4, 10]
+    #decomposed linear map approximation
+    i1 = Interval(N[0, 1])
+    i2 = Interval(N[2, 3])
+    M = N[1 2; 0 1]
+    cpa = CartesianProductArray([i1, i2])
+    lm = M * cpa
+    d_oa = overapproximate(lm, CartesianProductArray{N, Interval{N}})
+    oa = overapproximate(lm, OctDirections)
+    @test oa ⊆ d_oa
 end

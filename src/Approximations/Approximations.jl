@@ -6,24 +6,20 @@ support vectors.
 """
 module Approximations
 
-using LazySets, Requires
+using LazySets, Requires, LinearAlgebra, SparseArrays
+
 
 export approximate,
        ballinf_approximation,
        box_approximation, interval_hull,
        decompose,
-       diameter,
-       norm,
        overapproximate,
-       radius,
        box_approximation_symmetric, symmetric_interval_hull,
        BoxDirections,
        BoxDiagDirections,
        OctDirections,
        PolarDirections,
        SphericalDirections
-
-include("../compat.jl")
 
 const TOL(N::Type{Float64}) = eps(N)
 const TOL(N::Type{Float32}) = eps(N)
@@ -39,5 +35,6 @@ include("box_approximations.jl")
 include("template_directions.jl")
 include("overapproximate.jl")
 include("decompositions.jl")
+include("init.jl")
 
 end # module

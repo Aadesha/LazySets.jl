@@ -1,8 +1,5 @@
-import Base: ==, copy
-
-@static if VERSION >= v"0.7-"
-    import Random.rand
-end
+import Base: ==, ≈, copy
+import Random.rand
 
 export LazySet,
        ρ, support_function,
@@ -296,12 +293,10 @@ function an_element(S::LazySet{N}) where {N<:Real}
     return σ(sparsevec([1], [one(N)], dim(S)), S)
 end
 
-
 """
     ==(X::LazySet, Y::LazySet)
 
-Return whether two LazySets of the same type are exactly equal by recursively
-comparing their fields until a mismatch is found.
+Return whether two LazySets of the same type are exactly equal.
 
 ### Input
 
@@ -315,10 +310,16 @@ comparing their fields until a mismatch is found.
 ### Notes
 
 The check is purely syntactic and the sets need to have the same base type.
-I.e. `X::VPolytope == Y::HPolytope` returns `false` even if `X` and `Y` represent the
-same polytope. However `X::HPolytope{Int64} == Y::HPolytope{Float64}` is a valid comparison.
+For instance, `X::VPolytope == Y::HPolytope` returns `false` even if `X` and `Y`
+represent the same polytope.
+However `X::HPolytope{Int64} == Y::HPolytope{Float64}` is a valid comparison.
+
+### Algorithm
+
+We recursively compare the fields of `X` and `Y` until a mismatch is found.
 
 ### Examples
+
 ```jldoctest
 julia> HalfSpace([1], 1) == HalfSpace([1], 1)
 true
@@ -332,7 +333,7 @@ false
 """
 function ==(X::LazySet, Y::LazySet)
     # if the common supertype of X and Y is abstract, they cannot be compared
-    if Compat.isabstracttype(promote_type(typeof(X), typeof(Y)))
+    if isabstracttype(promote_type(typeof(X), typeof(Y)))
         return false
     end
 
@@ -344,12 +345,65 @@ function ==(X::LazySet, Y::LazySet)
 
     return true
 end
+"""
+    ≈(X::LazySet, Y::LazySet)
 
-@static if VERSION >= v"0.7-"
-    # hook into random API
-    function rand(rng::AbstractRNG, ::SamplerType{T}) where T<:LazySet
-        rand(T, rng=rng)
+Return whether two LazySets of the same type are approximately equal.
+
+### Input
+
+- `X` -- any `LazySet`
+- `Y` -- another `LazySet` of the same type as `X`
+
+### Output
+
+- `true` iff `X` is equal to `Y`.
+
+### Notes
+
+The check is purely syntactic and the sets need to have the same base type.
+For instance, `X::VPolytope ≈ Y::HPolytope` returns `false` even if `X` and `Y`
+represent the same polytope.
+However `X::HPolytope{Int64} ≈ Y::HPolytope{Float64}` is a valid comparison.
+
+### Algorithm
+
+We recursively compare the fields of `X` and `Y` until a mismatch is found.
+
+### Examples
+
+```jldoctest
+julia> HalfSpace([1], 1) ≈ HalfSpace([1], 1)
+true
+
+julia> HalfSpace([1], 1) ≈ HalfSpace([1.00000001], 0.99999999)
+true
+
+julia> HalfSpace([1], 1) ≈ HalfSpace([1.0], 1.0)
+true
+
+julia> Ball1([0.], 1.) ≈ Ball2([0.], 1.)
+false
+```
+"""
+function ≈(X::LazySet, Y::LazySet)
+    # if the common supertype of X and Y is abstract, they cannot be compared
+    if isabstracttype(promote_type(typeof(X), typeof(Y)))
+        return false
     end
+
+    for f in fieldnames(typeof(X))
+        if !(getfield(X, f) ≈ getfield(Y, f))
+            return false
+        end
+    end
+
+    return true
+end
+
+# hook into random API
+function rand(rng::AbstractRNG, ::SamplerType{T}) where T<:LazySet
+    rand(T, rng=rng)
 end
 
 """
@@ -441,4 +495,51 @@ function isuniversal(X::LazySet{N}, witness::Bool=false
     else
         return false
     end
+end
+
+"""
+    plot_recipe(X::LazySet{N}, [ε]::N=N(PLOT_PRECISION)) where {N<:Real}
+
+Convert a convex set to a pair `(x, y)` of points for plotting.
+
+### Input
+
+- `X` -- convex set
+- `ε` -- (optional, default: `PLOT_PRECISION`) approximation error bound
+
+### Output
+
+A pair `(x, y)` of points that can be plotted.
+
+### Notes
+
+Plotting of unbounded sets is not implemented yet (see
+[#576](https://github.com/JuliaReach/LazySets.jl/issues/576)).
+
+### Algorithm
+
+We first assert that `X` is bounded.
+
+One-dimensional sets are converted to an `Interval`.
+We do not support three-dimensional or higher-dimensional sets at the moment.
+
+For two-dimensional sets, we first compute a polygonal overapproximation.
+The second argument, `ε`, corresponds to the error in Hausdorff distance between
+the overapproximating set and `X`.
+The default value `PLOT_PRECISION` is chosen such that the unit ball in the
+2-norm is approximated with reasonable accuracy.
+On the other hand, if you only want to produce a fast box-overapproximation of
+`X`, pass `ε=Inf`.
+Finally, we use the plot recipe for polygons.
+"""
+function plot_recipe(X::LazySet{N}, ε::N=N(PLOT_PRECISION)) where {N<:Real}
+    @assert dim(X) <= 2 "cannot plot a $(dim(X))-dimensional $(typeof(X))"
+    @assert isbounded(X) "cannot plot an unbounded $(typeof(X))"
+
+    if dim(X) == 1
+        Y = convert(Interval, X)
+    else
+        Y = overapproximate(X, ε)
+    end
+    return plot_recipe(Y, ε)
 end
